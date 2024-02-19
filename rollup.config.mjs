@@ -12,17 +12,23 @@ import alias from '@rollup/plugin-alias'
 import postcss from 'rollup-plugin-postcss'
 import cssnano from 'cssnano'
 import autoprefixer from 'autoprefixer'
+import typescript from 'rollup-plugin-typescript2'
+import { DEFAULT_EXTENSIONS } from '@babel/core'
+import { rimrafSync } from 'rimraf'
+import del from 'rollup-plugin-delete'
 
+rimrafSync('dist') // 删除打包目录
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 export default defineConfig([
   {
-    input: 'src/index.js', //入口文件
+    input: 'src/index.ts', //入口文件
     output: [
       {
         dir: pkg.main, //出口文件
         format: 'cjs', //打包成CommonJS模块
+        sourcemap: true,
         manualChunks: {
           lodash: ['lodash-es']
         }
@@ -30,6 +36,7 @@ export default defineConfig([
       {
         dir: pkg.module, //出口文件
         format: 'es', //打包成es module模块
+        sourcemap: true,
         manualChunks: {
           lodash: ['lodash-es']
         }
@@ -37,10 +44,15 @@ export default defineConfig([
       {
         name: 'myUtils', //打包成UMD模式，需提供name
         file: pkg.browser, //出口文件,umd不支持代码分割  import()
-        format: 'umd' //打包成UMD模块
+        format: 'umd', //打包成UMD模块
+        sourcemap: true
       }
     ],
     plugins: [
+      /**
+       * rollup-plugin-delete：删除dist目录
+       */
+      del({ targets: 'dist/*' }),
       /**
        * @rollup/plugin-json：处理JSON文件,只打包需要的属性
        */
@@ -48,7 +60,11 @@ export default defineConfig([
       /**
        * @rollup/plugin-terser：压缩文件
        */
-      terser(),
+      terser({
+        compress: {
+          drop_console: ['log']
+        }
+      }),
       /**
        * @rollup/plugin-node-resolve：处理外部依赖，将其打包进来
        */
@@ -65,17 +81,6 @@ export default defineConfig([
         entries: [{ find: '@', replacement: path.resolve(__dirname, 'src') }]
       }),
       /**
-       * @rollup/plugin-babel：在 Rollup 打包过程中使用 Babel 进行代码转换
-       * @babel/core：babel核心库
-       * @babel/preset-env：将ES6转换为向后兼容的JavaScript
-       * @babel/plugin-transform-runtime：处理async，await、import()等语法关键字的帮助函数
-       */
-      babel({
-        babelHelpers: 'runtime',
-        presets: ['@babel/preset-env'],
-        plugins: [['@babel/plugin-transform-runtime', { useESModules: true }]]
-      }),
-      /**
        * rollup-plugin-postcss：默认集成了对 scss、less、stylus 的支持
        * cssnano：压缩css
        * autoprefixer：给样式属性添加浏览器特有前缀
@@ -84,6 +89,24 @@ export default defineConfig([
         plugins: [cssnano(), autoprefixer()],
         //抽离单独的css文件
         extract: 'css/index.css'
+      }),
+      /**
+       * @rollup/plugin-typescript2：将ts转换为js
+       * 如果使用了@rollup/plugin-node-resolve，要在rollup-plugin-typescript2之前调用
+       * 如果使用了@rollup/plugin-babel，要在rollup-plugin-typescript2之前调用，并配置babel扩展
+       */
+      typescript(),
+      /**
+       * @rollup/plugin-babel：在 Rollup 打包过程中使用 Babel 进行代码转换
+       * @babel/core：babel核心库
+       * @babel/preset-env：将ES6转换为向后兼容的JavaScript
+       * @babel/plugin-transform-runtime：处理async，await、import()等语法关键字的帮助函数
+       */
+      babel({
+        babelHelpers: 'runtime',
+        presets: ['@babel/preset-env'],
+        plugins: [['@babel/plugin-transform-runtime', { useESModules: true }]],
+        extensions: [...DEFAULT_EXTENSIONS, '.ts', '.tsx'] //增加配置
       })
     ]
   }
