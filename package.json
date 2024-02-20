@@ -1,5 +1,5 @@
 {
-  "name": "rollup-demo",
+  "name": "@zr/rollup-demo",
   "version": "1.0.0",
   "main": "dist/cjs",
   "module": "dist/es",
