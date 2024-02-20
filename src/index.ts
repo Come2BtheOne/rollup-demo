@@ -9,7 +9,7 @@ import './styles/common.scss'
 export default () => {
   // import('@/utils/foo.js').then(({ HelloWorld }) => console.log(HelloWorld()))
   console.log(HelloWorld())
-  console.log('版本号' + version)
+  console.warn('版本号' + version)
   const num = add(2 + 4)
   console.log('sum ' + num)
 }
